@@ -1,26 +1,106 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React,{useCallback, useMemo} from "react"
+import DataTable from 'react-data-table-component';
+import { useState } from "react";
+import { useEffect } from "react";
+import axios from "axios";
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+	const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [totalRows, setTotalRows] = useState(0);
+    const [perPage, setPerPage] = useState(10);
+    const [currentPage, setCurrentPage] = useState(1);
+    // const [deleted, setDeleted] = useState([]);
+
+    const removeItem = (array, item) => {
+        const newArray = array.slice();
+        newArray.splice(newArray.findIndex(a => a === item), 1);
+      
+        return newArray;
+    };
+    const fetchUsers = async (page, size = perPage) => {
+        setLoading(true);
+
+        const response = await axios.get(
+        `https://reqres.in/api/users?page=${page}&per_page=${size}&delay=1`
+        );
+            console.log(response.data.data)
+        setData(response.data.data);
+        setTotalRows(response.data.total);
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchUsers(1);
+    }, []);
+
+    const handleDelete = useCallback(
+        row => async () => {
+        await axios.delete(`https://reqres.in/api/users/${row.id}`);
+        const response = await axios.get(
+            `https://reqres.in/api/users?page=${currentPage}&per_page=${perPage}`
+        );
+            
+        setData(removeItem(response.data.data, row));
+        setTotalRows(totalRows - 1);
+        },
+        [currentPage, perPage, totalRows]
+    );
+
+    const columns = useMemo(
+        () => [
+        {
+            name: "First Name",
+            selector: "first_name",
+            sortable: true
+        },
+        {
+            name: "Last Name",
+            selector: "last_name",
+            sortable: true
+        },
+        {
+            name: "Email",
+            selector: "email",
+            sortable: true
+        },
+        {
+            // eslint-disable-next-line react/button-has-type
+            cell: row => <button onClick={handleDelete(row)}>Delete</button>
+        }
+        ],
+        [handleDelete]
+    );
+
+    const handlePageChange = page => {
+        fetchUsers(page);
+        setCurrentPage(page);
+    };
+
+    const handlePerRowsChange = async (newPerPage, page) => {
+        fetchUsers(page, newPerPage);
+        setPerPage(newPerPage);
+    };
+
+
+    return(
+        <>
+            <DataTable
+                title="Users"
+                columns={columns}
+                data={data}
+                progressPending={loading}
+                pagination
+                paginationServer
+                paginationTotalRows={totalRows}
+                paginationDefaultPage={currentPage}
+                onChangeRowsPerPage={handlePerRowsChange}
+                onChangePage={handlePageChange}
+                selectableRows // 체크 박스
+                onSelectedRowsChange={({ selectedRows }) => console.log(selectedRows)}
+            />
+        </>
+    )
 }
 
 export default App;
