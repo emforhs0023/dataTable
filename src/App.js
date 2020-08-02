@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useEffect } from "react";
 import axios from "axios";
 
-function App() {
-	const [data, setData] = useState([]);
+const App = () => {
+    const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [totalRows, setTotalRows] = useState(0);
     const [perPage, setPerPage] = useState(10);
@@ -20,56 +20,43 @@ function App() {
     };
     const fetchUsers = async (page, size = perPage) => {
         setLoading(true);
-
-        const response = await axios.get(
-        `https://reqres.in/api/users?page=${page}&per_page=${size}&delay=1`
-        );
-            console.log(response.data.data)
-        setData(response.data.data);
-        setTotalRows(response.data.total);
-        setLoading(false);
+        const pageData = page * size
+        const weteenData = pageData - size
+        // page * size (ex) 1 * 10 , 1 * 20)
+        // 
+        const response = await axios.get(`http://localhost:9008/api/dataInfo/?page=`+ pageData+ '&size='+weteenData)
+        setData(response.data[0])
+        setTotalRows(response.data[1][0].count)
+        setLoading(false)
     };
 
     useEffect(() => {
         fetchUsers(1);
     }, []);
 
-    const handleDelete = useCallback(
-        row => async () => {
-        await axios.delete(`https://reqres.in/api/users/${row.id}`);
-        const response = await axios.get(
-            `https://reqres.in/api/users?page=${currentPage}&per_page=${perPage}`
-        );
-            
-        setData(removeItem(response.data.data, row));
-        setTotalRows(totalRows - 1);
-        },
-        [currentPage, perPage, totalRows]
-    );
-
     const columns = useMemo(
         () => [
         {
             name: "First Name",
-            selector: "first_name",
+            selector: "seq",
             sortable: true
         },
         {
             name: "Last Name",
-            selector: "last_name",
+            selector: "name",
             sortable: true
         },
         {
             name: "Email",
-            selector: "email",
+            selector: "title",
             sortable: true
         },
-        {
-            // eslint-disable-next-line react/button-has-type
-            cell: row => <button onClick={handleDelete(row)}>Delete</button>
-        }
+        // {
+        //     // eslint-disable-next-line react/button-has-type
+        //     cell: row => <button onClick={handleDelete(row)}>Delete</button>
+        // }
         ],
-        [handleDelete]
+        []
     );
 
     const handlePageChange = page => {
@@ -103,4 +90,4 @@ function App() {
     )
 }
 
-export default App;
+export default App
